@@ -133,6 +133,19 @@ newData <- data.frame(
 Andromeda::appendToTable(tbl = trainData$covariateData$covariates, 
                          data = newData)
   
+# Save the featureEngineering settings for further use i.e. apply the same feature engineer settings for the test set
+featureEngeering <- list(
+    funct = 'implementAgeSpine',
+    settings = list(
+      featureEngineeringSettings = featureEngineeringSettings
+    )
+  )
+  
+  attr(trainData, 'metaData')$featureEngineering = listAppend(
+    attr(trainData, 'metaData')$featureEngineering,
+    featureEngeering
+ )
+
   # return the updated trainData
   return(trainData)
 }
