@@ -643,7 +643,7 @@ createStudyPopulation <- function(
   population <- population[, c('timeAtRisk', 'survivalTime', 'daysToEvent') := 
                              .(tarEnd - tarStart + 1,
                                ifelse(outcomeCount ==0, tarEnd - tarStart + 1, first - tarStart + 1),
-                               first)][,.(rowId, subjectId, targetId, cohortStartDate, daysFromObsStart,
+                               first)][,.(rowId, subjectId, cohortId, cohortStartDate, daysFromObsStart,
                                           daysToCohortEnd, daysToObsEnd, ageYear, gender,
                                           outcomeCount, timeAtRisk, daysToEvent, survivalTime)]
   
