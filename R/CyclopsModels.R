@@ -18,11 +18,11 @@
 
 
 fitCyclopsModel <- function(
-  trainData, 
-  modelSettings, # old:param, 
-  search='adaptive',
-  analysisId,
-  ...){
+    trainData, 
+    modelSettings, # old:param, 
+    search='adaptive',
+    analysisId,
+    ...){
   
   param <- modelSettings$param
   
@@ -55,8 +55,9 @@ fitCyclopsModel <- function(
     Andromeda::appendToTable(covariates, newCovariates)
     
   }
-
+  
   start <- Sys.time()
+  
   cyclopsData <- Cyclops::convertToCyclopsData(
     outcomes = trainData$covariateData$labels,
     covariates = covariates,
@@ -65,7 +66,7 @@ fitCyclopsModel <- function(
     checkRowIds = FALSE,
     normalize = NULL,
     quiet = TRUE
-    )
+  )
   
   if (!is.null(param$priorCoefs)) {
     fixedCoefficients <- c(FALSE,
@@ -80,12 +81,12 @@ fitCyclopsModel <- function(
     startingCoefficients <- NULL
     fixedCoefficients <- NULL 
   }
-
+  
   if(settings$crossValidationInPrior){  
     param$priorParams$useCrossValidation <- max(trainData$folds$index)>1
   }
   prior <- do.call(eval(parse(text = settings$priorfunction)), param$priorParams)
-
+  
   if(settings$useControl){
     
     control <- Cyclops::createControl(
@@ -99,8 +100,9 @@ fitCyclopsModel <- function(
       selectorType = settings$selectorType,
       noiseLevel = "silent",
       threads = settings$threads,
-      maxIterations = settings$maxIterations
-      )
+      maxIterations = settings$maxIterations,
+      seed = settings$seed
+    )
     
     fit <- tryCatch({
       ParallelLogger::logInfo('Running Cyclops')
@@ -110,9 +112,9 @@ fitCyclopsModel <- function(
         control = control,
         fixedCoefficients = fixedCoefficients,
         startingCoefficients = startingCoefficients
-        )}, 
+      )}, 
       finally = ParallelLogger::logInfo('Done.')
-      )
+    )
   } else{
     fit <- tryCatch({
       ParallelLogger::logInfo('Running Cyclops with fixed varience')
@@ -127,8 +129,9 @@ fitCyclopsModel <- function(
     useCrossValidation = max(trainData$folds$index)>1, 
     cyclopsData = cyclopsData, 
     labels = trainData$covariateData$labels,
-    folds = trainData$folds
-    )
+    folds = trainData$folds,
+    priorType = param$priorParams$priorType
+  )
   
   if (!is.null(param$priorCoefs)) {
     modelTrained$coefficients <- reparamTransferCoefs(modelTrained$coefficients)
@@ -137,7 +140,7 @@ fitCyclopsModel <- function(
   # TODO get optimal lambda value
   ParallelLogger::logTrace('Returned from fitting to LassoLogisticRegression')
   comp <- Sys.time() - start
-
+  
   ParallelLogger::logTrace('Getting variable importance')
   variableImportance <- getVariableImportance(modelTrained, trainData)
   
@@ -149,7 +152,7 @@ fitCyclopsModel <- function(
     plpModel = tempModel,
     cohort = trainData$labels, 
     data = trainData
-    )
+  )
   prediction$evaluationType <- 'Train'
   
   # get cv AUC if exists
@@ -251,20 +254,20 @@ predictCyclops <- function(plpModel, data, cohort ) {
   
   # survival cyclops use baseline hazard to convert to risk from exp(LP) to 1-S^exp(LP)
   if(attr(plpModel, 'modelType') == 'survival'){
-    if(!is.null(plpModel$model$baselineHazard)){
+    if(!is.null(plpModel$model$baselineSurvival)){
       if(is.null(attr(cohort, 'timepoint'))){
         timepoint <- attr(cohort,'metaData')$populationSettings$riskWindowEnd
       } else{
         timepoint <- attr(cohort, 'timepoint')
       }
-      bhind <- which.min(abs(plpModel$model$baselineHazard$time-timepoint))
-      #prediction$value <- 1-plpModel$model$baselineHazard$surv[bhind]^prediction$value
-      prediction$value <- (1-plpModel$model$baselineHazard$surv[bhind])*prediction$value
+      bhind <- which.min(abs(plpModel$model$baselineSurvival$time-timepoint))
+      # 1- baseline survival(time)^ (exp(betas*values))
+      prediction$value <- 1-plpModel$model$baselineSurvival$surv[bhind]^prediction$value
       
       
       metaData <- list()
-      metaData$baselineHazardTimepoint <- plpModel$model$baselineHazard$time[bhind]
-      metaData$baselineHazard <- plpModel$model$baselineHazard$surv[bhind]
+      metaData$baselineSurvivalTimepoint <- plpModel$model$baselineSurvival$time[bhind]
+      metaData$baselineSurvival <- plpModel$model$baselineSurvival$surv[bhind]
       metaData$offset <- 0
       
       attr(prediction, 'metaData') <- metaData
@@ -284,19 +287,13 @@ predictCyclopsType <- function(coefficients, population, covariateData, modelTyp
     stop("Needs correct covariateData")
   }
   
-  if (inherits(coefficients, 'numeric')) {
-    coefficients <- data.frame(betas=as.numeric(coefficients),
-                               covariateIds=names(coefficients))
-  }
-  
   intercept <- coefficients$betas[coefficients$covariateId%in%'(Intercept)']
   if(length(intercept)==0) intercept <- 0
   betas <- coefficients$betas[!coefficients$covariateIds%in%'(Intercept)']
   coefficients <- data.frame(beta = betas,
-    covariateId = coefficients$covariateIds[coefficients$covariateIds!='(Intercept)']
+                             covariateId = coefficients$covariateIds[coefficients$covariateIds!='(Intercept)']
   )
   coefficients <- coefficients[coefficients$beta != 0, ]
-  coefficients$covariateId <- as.numeric(coefficients$covariateId)
   if(sum(coefficients$beta != 0)>0){
     covariateData$coefficients <- coefficients
     on.exit(covariateData$coefficients <- NULL, add = TRUE)
@@ -338,8 +335,9 @@ predictCyclopsType <- function(coefficients, population, covariateData, modelTyp
 }
 
 
-createCyclopsModel <- function(fit, modelType, useCrossValidation, cyclopsData, labels, folds){
-
+createCyclopsModel <- function(fit, modelType, useCrossValidation, cyclopsData, labels, folds,
+                               priorType){
+  
   if (is.character(fit)) {
     coefficients <- c(0)
     names(coefficients) <- ''
@@ -356,7 +354,7 @@ createCyclopsModel <- function(fit, modelType, useCrossValidation, cyclopsData, 
     ParallelLogger::logWarn(paste("GLM fitting issue: ", status))
   } else {
     status <- "OK"
-    coefficients <- as.list(coef(fit))
+    coefficients <- stats::coef(fit) # not sure this is stats??
     ParallelLogger::logInfo(paste("GLM fit status: ", status))
   }
   
@@ -372,24 +370,25 @@ createCyclopsModel <- function(fit, modelType, useCrossValidation, cyclopsData, 
     modelStatus = status,
     coefficients = coefficients
   )
-
+  
   if(modelType == "cox" || modelType == "survival") {
-    baselineHazard <- tryCatch({survival::survfit(fit, type = "aalen")},
-      error = function(e) {ParallelLogger::logInfo(e); return(NULL)})
-    if(is.null(baselineHazard)){
+    baselineSurvival <- tryCatch({survival::survfit(fit, type = "aalen")},
+                                 error = function(e) {ParallelLogger::logInfo(e); return(NULL)})
+    if(is.null(baselineSurvival)){
       ParallelLogger::logInfo('No baseline hazard function returned')
     }
-    outcomeModel$baselineHazard <- baselineHazard
+    outcomeModel$baselineSurvival <- baselineSurvival
   }
   class(outcomeModel) <- "plpModel"
   
   #get CV
   if(modelType == "logistic" && useCrossValidation){
-    outcomeModel$cv <- getCV(cyclopsData, labels, cvVariance = fit$variance, folds = folds)
+    outcomeModel$cv <- getCV(cyclopsData, labels, cvVariance = fit$variance, folds = folds,
+                             priorType = priorType)
   }
   
   return(outcomeModel)
-
+  
 }
 
 modelTypeToCyclopsModelType <- function(modelType, stratified=F) {
@@ -415,37 +414,40 @@ modelTypeToCyclopsModelType <- function(modelType, stratified=F) {
 
 
 getCV <- function(
-  cyclopsData, 
-  labels,
-  cvVariance,
-  folds
+    cyclopsData, 
+    labels,
+    cvVariance,
+    folds,
+    priorType
 )
 {
-  fixed_prior <- Cyclops::createPrior("laplace", variance = cvVariance, useCrossValidation = FALSE)
+  fixed_prior <- Cyclops::createPrior(priorType = priorType, 
+                                      variance = cvVariance, 
+                                      useCrossValidation = FALSE)
   
   # add the index to the labels
-  labels <- merge(labels %>% dplyr::collect(), folds, by = 'rowId')
+  labels <- merge(labels, folds, by = 'rowId')
   
   result <- lapply(1:max(labels$index), function(i) {
     hold_out <- labels$index==i
     weights <- rep(1.0, Cyclops::getNumberOfRows(cyclopsData))
     weights[hold_out] <- 0.0
     subset_fit <- suppressWarnings(Cyclops::fitCyclopsModel(cyclopsData,
-      prior = fixed_prior,
-      weights = weights))
+                                                            prior = fixed_prior,
+                                                            weights = weights))
     predict <- stats::predict(subset_fit)
     
     auc <- aucWithoutCi(predict[hold_out], labels$y[hold_out])
     
     predCV <- cbind(labels[hold_out,], 
-      value = predict[hold_out])
+                    value = predict[hold_out])
     #predCV$outcomeCount <- predCV$y
     
     return(list(out_sample_auc = auc,
-      predCV = predCV,
-      log_likelihood = subset_fit$log_likelihood,
-      log_prior = subset_fit$log_prior,
-      coef = stats::coef(subset_fit)))
+                predCV = predCV,
+                log_likelihood = subset_fit$log_likelihood,
+                log_prior = subset_fit$log_prior,
+                coef = stats::coef(subset_fit)))
   })
   
   return(result) 
@@ -457,25 +459,25 @@ getVariableImportance <- function(modelTrained, trainData){
     covariateId = as.double(modelTrained$coefficients$covariateIds[modelTrained$coefficients$covariateIds!='(Intercept)']),
     value = modelTrained$coefficients$betas[modelTrained$coefficients$covariateIds!='(Intercept)']
   )
-
-if(sum(abs(varImp$value)>0)==0){
-  ParallelLogger::logWarn('No non-zero coefficients')
-  varImp <- NULL
-} else {
-  ParallelLogger::logInfo('Creating variable importance data frame')
   
-  #trainData$covariateData$varImp <- varImp
-  #on.exit(trainData$covariateData$varImp <- NULL, add = T)
-  
-  varImp <- trainData$covariateData$covariateRef %>% 
-    dplyr::collect()  %>%
-    #dplyr::left_join(trainData$covariateData$varImp) %>%
-    dplyr::left_join(varImp, by = 'covariateId') %>%
-    dplyr::mutate(covariateValue = ifelse(is.na(.data$value), 0, .data$value)) %>%
-    dplyr::select(-.data$value) %>%
-    dplyr::arrange(-abs(.data$covariateValue)) %>%
-    dplyr::collect()
-}
+  if(sum(abs(varImp$value)>0)==0){
+    ParallelLogger::logWarn('No non-zero coefficients')
+    varImp <- NULL
+  } else {
+    ParallelLogger::logInfo('Creating variable importance data frame')
+    
+    #trainData$covariateData$varImp <- varImp
+    #on.exit(trainData$covariateData$varImp <- NULL, add = T)
+    
+    varImp <- trainData$covariateData$covariateRef %>% 
+      dplyr::collect()  %>%
+      #dplyr::left_join(trainData$covariateData$varImp) %>%
+      dplyr::left_join(varImp, by = 'covariateId') %>%
+      dplyr::mutate(covariateValue = ifelse(is.na(.data$value), 0, .data$value)) %>%
+      dplyr::select(-.data$value) %>%
+      dplyr::arrange(-abs(.data$covariateValue)) %>%
+      dplyr::collect()
+  }
   
   return(varImp)
 }
@@ -511,6 +513,6 @@ reparamTransferCoefs <- function(inCoefs) {
   coefs <- rbind(originalCoefs, transferCoefs)
   coefs <- rowsum(coefs$betas, coefs$covariateIds)
   coefs <- data.frame(betas = coefs, covariateIds = rownames(coefs), row.names = NULL)
-
+  
   return(coefs)
 }
