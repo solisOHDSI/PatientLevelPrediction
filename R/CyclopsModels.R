@@ -305,7 +305,7 @@ predictCyclopsType <- function(coefficients, population, covariateData, modelTyp
       dplyr::summarise(value = sum(.data$values, na.rm = TRUE)) %>%
       dplyr::select(.data$rowId, .data$value)
     
-    prediction <- as.data.frame(prediction)
+    prediction <- prediction %>% collect()
     prediction <- merge(population, prediction, by ="rowId", all.x = TRUE, fill = 0)
     prediction$value[is.na(prediction$value)] <- 0
     prediction$value <- prediction$value + intercept
