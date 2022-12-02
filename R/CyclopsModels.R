@@ -293,7 +293,9 @@ predictCyclopsType <- function(coefficients, population, covariateData, modelTyp
   coefficients <- data.frame(beta = betas,
                              covariateId = coefficients$covariateIds[coefficients$covariateIds!='(Intercept)']
   )
-  coefficients <- coefficients[coefficients$beta != 0, ]
+  coefficients <- coefficients[coefficients$beta != 0, ] %>% # adding this because originally this was a 
+    mutate(covariateId = as.double(covariateId))            # a character vector. consider a more clean solution
+  
   if(sum(coefficients$beta != 0)>0){
     covariateData$coefficients <- coefficients
     on.exit(covariateData$coefficients <- NULL, add = TRUE)
