@@ -305,7 +305,7 @@ predictCyclopsType <- function(coefficients, population, covariateData, modelTyp
       dplyr::summarise(value = sum(.data$values, na.rm = TRUE)) %>%
       dplyr::select(.data$rowId, .data$value)
     
-    prediction <- prediction %>% collect()
+    prediction <- prediction %>% dplyr::collect()
     prediction <- merge(population, prediction, by ="rowId", all.x = TRUE, fill = 0)
     prediction$value[is.na(prediction$value)] <- 0
     prediction$value <- prediction$value + intercept
@@ -426,7 +426,7 @@ getCV <- function(
                                       useCrossValidation = FALSE)
   
   # add the index to the labels
-  labels <- merge(labels, folds, by = 'rowId')
+  labels <- dplyr::full_join(labels, folds, by = 'rowId') %>% dplyr::collect()
   
   result <- lapply(1:max(labels$index), function(i) {
     hold_out <- labels$index==i
