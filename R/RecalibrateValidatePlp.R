@@ -96,7 +96,7 @@ recalibrateValidatePlp <- function(
       cdmDatabaseSchema = databaseName,
       populationSettings = attr(population, 'metaData')$populationSettings,
       outcomeId = attr(population, 'metaData')$outcomeId,
-      cohortId = attr(data$Train, 'metaData')$targetId,
+      cohortId = attr(data$Train, 'metaData')$cohortId,
       attrition = attr(population, 'metaData')$attrition,
       validationDate = Sys.Date() # is this needed?
     )
