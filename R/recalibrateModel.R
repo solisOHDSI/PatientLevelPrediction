@@ -4,17 +4,17 @@
 #' Recalibrate model
 #' 
 #' @details 
-#' This function takes as input a plpResult as generated from PatientLevelPrediction::loadPlpResult() and retruns again a model
-#' with recalibrated probabilities.
+#' This function takes as input a plpResult as generated from PatientLevelPrediction::loadPlpResult() and returns again a model
+#' with re-calibrated probabilities.
 #' 
 #' @export
 recalibrateModel <- function(
     plpResult,
     recalibrationMethod,
-    logSettings = createLogSettings(
-      verbosity = 'DEBUG',
-      timeStamp = T,
-      logName = 'plpLogRecalibration'),
+    # logSettings = createLogSettings(
+    #   verbosity = "DEBUG",
+    #   timeStamp = T,
+    #   logName = 'plpLogRecalibration'),
     saveDirectory){
   
   # Global variables
@@ -24,11 +24,11 @@ recalibrateModel <- function(
   
   # start log
   analysisPath <- file.path(saveDirectory, analysisId)
-  logSettings$saveDirectory <- analysisPath
-  logSettings$logFileName <- 'plpLogRecalibration'
-  logger <- do.call(createLog,logSettings)
-  ParallelLogger::registerLogger(logger)
-  on.exit(closeLog(logger))
+  # logSettings$saveDirectory <- analysisPath
+  # logSettings$logFileName <- 'plpLogRecalibration'
+  # logger <- do.call(createLog,logSettings)
+  # ParallelLogger::registerLogger(logger)
+  # on.exit(closeLog(logger))
   # if(!is.null(predictionTest)){
   #   prediction <- rbind(predictionTest, prediction[, colnames(prediction)!='index'])
   # }
@@ -106,8 +106,8 @@ recalibrateModel <- function(
       RAM = memuse::Sys.meminfo()[1]
     ),
     TotalExecutionElapsedTime = TotalExecutionElapsedTime,
-    ExecutionDateTime = ExecutionDateTime,
-    Log = logSettings$logFileName # location for now
+    ExecutionDateTime = ExecutionDateTime
+    # Log = logSettings$logFileName # location for now
     #Not available at the moment: CDM_SOURCE -  meta-data containing CDM version, release date, vocabulary version
   )
   
