@@ -11,7 +11,7 @@
 recalibrateModel <- function(
     plpResult,
     recalibrationMethod,
-    logSettings = PatientLevelPrediction::createLogSettings(
+    logSettings = createLogSettings(
       verbosity = 'DEBUG',
       timeStamp = T,
       logName = 'plpLogRecalibration'),
@@ -26,9 +26,9 @@ recalibrateModel <- function(
   analysisPath <- file.path(saveDirectory, analysisId)
   logSettings$saveDirectory <- analysisPath
   logSettings$logFileName <- 'plpLogRecalibration'
-  logger <- do.call(PatientLevelPrediction:::createLog,logSettings)
+  logger <- do.call(createLog,logSettings)
   ParallelLogger::registerLogger(logger)
-  on.exit(PatientLevelPrediction:::closeLog(logger))
+  on.exit(closeLog(logger))
   # if(!is.null(predictionTest)){
   #   prediction <- rbind(predictionTest, prediction[, colnames(prediction)!='index'])
   # }
