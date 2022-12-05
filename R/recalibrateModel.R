@@ -11,7 +11,7 @@
 recalibrateModel <- function(
     plpResult,
     recalibrationMethod,
-    logSettings = createLogSettings(
+    logSettings = PatientLevelPrediction::createLogSettings(
       verbosity = 'DEBUG',
       timeStamp = T,
       logName = 'plpLogRecalibration'),
