@@ -1,4 +1,4 @@
-#' @file RecalibrateValidatePlp.R
+# @file RecalibrateValidatePlp.R
 #'
 #' Copyright 2021 Observational Health Data Sciences and Informatics
 #'
@@ -88,15 +88,15 @@ recalibrateValidatePlp <- function(
   
   model = list(
     model = 'recalibrated validation of model',
-    settings = plpModel$settings,
+    settings = plpResult$model$modelDesign,
     validationDetails   = list(
-      analysisId = plpModel$trainDetails$analysisId, #TODO add from model
+      analysisId = plpResult$model$trainDetails$analysisId, #TODO add from model
       analysisSource = '', #TODO add from model
-      developmentDatabase = plpModel$trainDetails$cdmDatabaseSchema,
+      developmentDatabase = plpResult$model$trainDetails$cdmDatabaseSchema,
       cdmDatabaseSchema = databaseName,
       populationSettings = attr(population, 'metaData')$populationSettings,
       outcomeId = attr(population, 'metaData')$outcomeId,
-      cohortId = attr(plpData, 'metaData')$cohortId,
+      cohortId = attr(data$Train, 'metaData')$targetId,
       attrition = attr(population, 'metaData')$attrition,
       validationDate = Sys.Date() # is this needed?
     )
