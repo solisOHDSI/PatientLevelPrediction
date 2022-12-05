@@ -18,7 +18,7 @@
 
 
 recalibrateValidatePlp <- function(
-    plpModel,
+    plpResult,
     data,
     databaseName = 'database 1',
     population,
@@ -26,17 +26,18 @@ recalibrateValidatePlp <- function(
 ){
   
   # Apply model 
-  #=======
-  prediction <- tryCatch({
-    predictPlp(
-      plpModel = plpModel, 
-      plpData = data$Test, 
-      population = data$Test$labels
-    )},
-    error = function(e){ParallelLogger::logError(e)}
-  )
-  
-  prediction$evaluationType <- 'Test'
+  # #=======
+  # prediction <- tryCatch({
+  #   predictPlp(
+  #     plpModel = plpModel, 
+  #     plpData = data$Test, 
+  #     population = data$Test$labels
+  #   )},
+  #   error = function(e){ParallelLogger::logError(e)}
+  # )
+  # 
+  # prediction$evaluationType <- 'Test'
+  prediction <- plpResult$prediction
   
   # Recalibrate
   #=======
@@ -64,12 +65,12 @@ recalibrateValidatePlp <- function(
   error = function(e){ParallelLogger::logError(e)}
   )
   
-  # step 6: covariate summary
-  labels <- tryCatch({
-    population %>% dplyr::select(.data$rowId, .data$outcomeCount)
-  },
-  error = function(e){ return(NULL) }
-  )
+  # # step 6: covariate summary
+  # labels <- tryCatch({
+  #   population %>% dplyr::select(.data$rowId, .data$outcomeCount)
+  # },
+  # error = function(e){ return(NULL) }
+  # )
   covariateSum <- NULL
   
   executionSummary <- list(
