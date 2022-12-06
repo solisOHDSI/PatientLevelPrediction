@@ -11,10 +11,10 @@
 recalibrateModel <- function(
     plpResult,
     recalibrationMethod,
-    # logSettings = createLogSettings(
-    #   verbosity = "DEBUG",
-    #   timeStamp = T,
-    #   logName = 'plpLogRecalibration'),
+    logSettings = createLogSettings(
+      verbosity = "DEBUG",
+      timeStamp = T,
+      logName = 'plpLogRecalibration'),
     saveDirectory){
   
   # Global variables
@@ -24,11 +24,11 @@ recalibrateModel <- function(
   
   # start log
   analysisPath <- file.path(saveDirectory, analysisId)
-  # logSettings$saveDirectory <- analysisPath
-  # logSettings$logFileName <- 'plpLogRecalibration'
-  # logger <- do.call(createLog,logSettings)
-  # ParallelLogger::registerLogger(logger)
-  # on.exit(closeLog(logger))
+  logSettings$saveDirectory <- analysisPath
+  logSettings$logFileName <- 'plpLogRecalibration'
+  logger <- do.call(createLog,logSettings)
+  ParallelLogger::registerLogger(logger)
+  on.exit(closeLog(logger))
   # if(!is.null(predictionTest)){
   #   prediction <- rbind(predictionTest, prediction[, colnames(prediction)!='index'])
   # }
@@ -107,7 +107,7 @@ recalibrateModel <- function(
     ),
     TotalExecutionElapsedTime = TotalExecutionElapsedTime,
     ExecutionDateTime = ExecutionDateTime
-    # Log = logSettings$logFileName # location for now
+    Log = logSettings$logFileName # location for now
     #Not available at the moment: CDM_SOURCE -  meta-data containing CDM version, release date, vocabulary version
   )
   
