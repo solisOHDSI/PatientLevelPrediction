@@ -106,7 +106,7 @@ recalibrateModel <- function(
       RAM = memuse::Sys.meminfo()[1]
     ),
     TotalExecutionElapsedTime = TotalExecutionElapsedTime,
-    ExecutionDateTime = ExecutionDateTime
+    ExecutionDateTime = ExecutionDateTime,
     Log = logSettings$logFileName # location for now
     #Not available at the moment: CDM_SOURCE -  meta-data containing CDM version, release date, vocabulary version
   )
