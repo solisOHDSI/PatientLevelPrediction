@@ -1,7 +1,7 @@
 internalRecalibrationInTheLarge <- function(prediction, columnType = 'evaluationType'){
   
   if(attr(prediction, "metaData")$modelType == 'binary'){
-    misCal <- prediction %>% dplyr::filter("evaluationType" == "Train") %>% calibrationInLarge()
+    misCal <- prediction %>% dplyr::filter(evaluationType == "Train") %>% calibrationInLarge()
     
     # obsOdds <- misCal$observedRisk/ (1-misCal$observedRisk)
     outcomeRate <- prediction %>% 
@@ -12,7 +12,7 @@ internalRecalibrationInTheLarge <- function(prediction, columnType = 'evaluation
     predOdds <- misCal$meanPredictionRisk/ (1 -  misCal$meanPredictionRisk)
     correctionFactor <- log(obsOdds / predOdds)
     
-    recalibrated <- prediction %>% dplyr::filter("evaluationType" == "Test")
+    recalibrated <- prediction %>% dplyr::filter(evaluationType == "Test")
     recalibrated$value = logFunct(inverseLog(recalibrated$value) + correctionFactor)
     
     recalibrated[,columnType] <- 'recalibrationInTheLarge'
