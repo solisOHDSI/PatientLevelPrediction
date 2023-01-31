@@ -16,6 +16,6 @@ recalibrateModel(
 Recalibrate model
 }
 \details{
-This function takes as input a plpResult as generated from PatientLevelPrediction::loadPlpResult() and retruns again a model
-with recalibrated probabilities.
+This function takes as input a plpResult as generated from PatientLevelPrediction::loadPlpResult() and returns again a model
+with re-calibrated probabilities.
 }

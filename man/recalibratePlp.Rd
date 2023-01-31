@@ -8,7 +8,8 @@ recalibratePlp(
   prediction,
   analysisId,
   typeColumn = "evaluationType",
-  method = c("recalibrationInTheLarge", "weakRecalibration")
+  method = c("recalibrationInTheLarge", "weakRecalibration",
+    "internalRecalibrationInTheLarge")
 )
 }
 \arguments{
