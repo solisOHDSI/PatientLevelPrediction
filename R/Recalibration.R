@@ -160,13 +160,13 @@ recalibratePlpRefit <- function(
 
 #' @export
 recalibratePlp <- function(prediction, analysisId, typeColumn = 'evaluationType',
-                           method = c('recalibrationInTheLarge', 'weakRecalibration')){
+                           method = c('recalibrationInTheLarge', 'weakRecalibration', 'internalRecalibrationInTheLarge')){
   # check input:
     if (!inherits(x = prediction, what =  'data.frame')){
       stop("Incorrect prediction") 
     }
   
-  if(!method  %in% c('recalibrationInTheLarge', 'weakRecalibration')){
+  if(!method  %in% c('recalibrationInTheLarge', 'weakRecalibration', 'internalRecalibrationInTheLarge')){
     stop("Unknown recalibration method type. must be of type: recalibrationInTheLarge, weakRecalibration")
   }
   
