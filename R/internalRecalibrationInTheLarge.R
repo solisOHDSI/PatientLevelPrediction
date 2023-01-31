@@ -5,7 +5,7 @@ internalRecalibrationInTheLarge <- function(prediction, columnType = 'evaluation
     
     # obsOdds <- misCal$observedRisk/ (1-misCal$observedRisk)
     outcomeRate <- prediction %>% 
-      dplyr::filter("evaluationType" == "Test") %>%
+      dplyr::filter(evaluationType == "Test") %>%
       dplyr::summarize(outcomeRate = sum(outcomeCount)/dplyr::n())
     obsOdds <- outcomeRate$outcomeRate / (1- outcomeRate$outcomeRate)
     
