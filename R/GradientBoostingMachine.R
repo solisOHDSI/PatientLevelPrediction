@@ -229,6 +229,7 @@ fitXgboost <- function(
   N <- nrow(labels)
   outcomeProportion <- outcomes/N
   
+  set.seed(settings$seed)
   model <- xgboost::xgb.train(
     data = train, 
     params = list(
