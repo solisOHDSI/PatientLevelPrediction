@@ -75,7 +75,7 @@ Remotes:
     ohdsi/Eunomia,
     ohdsi/Andromeda@arrow_S4,
     ohdsi/Cyclops@arrow_S4,
-    ohdsi/FeatureExtraction@arrow_S4,
+    solisOHDSI/FeatureExtraction@arrow_S4,
     ohdsi/IterativeHardThresholding,
     ohdsi/ParallelLogger,
     ohdsi/OhdsiShinyModules
