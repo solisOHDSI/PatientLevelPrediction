@@ -33,25 +33,26 @@
 #' An object of class \code{sampleSettings}
 #' @export
 createSampleSettings <- function(type = 'none',
-                     numberOutcomestoNonOutcomes = 1,
-                     sampleSeed = sample(10000,1)){
+                                 numberOutcomestoNonOutcomes = 1,
+                                 sampleSeed = sample(10000,1), 
+                                 ...){
   
   checkIsClass(numberOutcomestoNonOutcomes, c('numeric','integer'))
   checkHigher(numberOutcomestoNonOutcomes,0)
   checkIsClass(sampleSeed, c('numeric','integer'))
   checkIsClass(type, c('character'))
-  if(! type %in% c('none', 'underSample', 'overSample')){
-    stop('Incorrect type.  Pick: none/underSample/overSample')
-  }
-  
-  if(type %in% c('underSample', 'overSample')){
-    ParallelLogger::logWarn('The previous documentation for `numberOutcomestoNonOutcomes` used to not reflect the functionality and has now been changed. The user needs to make sure the code is not relying on what was in the docs previously.')
-  }
+  # if(! type %in% c('none', 'underSample', 'overSample')){
+  #   stop('Incorrect type.  Pick: none/underSample/overSample')
+  # }
   
   sampleSettings <- list(
     numberOutcomestoNonOutcomes = numberOutcomestoNonOutcomes,
     sampleSeed  = ifelse(type == 'none', 1, sampleSeed) # to make it the same for none
-    )
+  )
+  
+  ellipsisArgs <- list(...)
+  
+  sampleSettings <- listAppend(a = sampleSettings, b = ellipsisArgs)
   
   if(type == 'none'){
     attr(sampleSettings, "fun") <- "sameData"
@@ -62,6 +63,10 @@ createSampleSettings <- function(type = 'none',
   if(type == 'overSample'){
     attr(sampleSettings, "fun") <- "overSampleData" # TODO
   }
+  if(type == "reduceTrainOutcomes"){
+    attr(sampleSettings, "fun") <- "reduceTrainOutcomes" 
+  }
+  
   class(sampleSettings) <- "sampleSettings"
   return(sampleSettings)
   
@@ -159,7 +164,7 @@ underSampleData <- function(trainData, sampleSettings){
   sampleTrainData$labels <- trainData$labels %>% dplyr::filter(.data$rowId %in% pplOfInterest)
   sampleTrainData$folds <- trainData$folds %>% dplyr::filter(.data$rowId %in% pplOfInterest)
   
-
+  
   
   sampleTrainData$covariateData <- Andromeda::andromeda()
   sampleTrainData$covariateData$covariateRef <- trainData$covariateData$covariateRef
@@ -249,6 +254,83 @@ overSampleData <- function(trainData, sampleSettings){
       Andromeda::appendToTable(sampleTrainData$covariateData$covariates, addTrainData$covariateData$covariates)
     }
   }
+  
+  #update metaData$populationSize = nrow(trainData$labels)
+  metaData <- attr(trainData$covariateData, 'metaData')
+  metaData$populationSize = nrow(sampleTrainData$labels)
+  attr(sampleTrainData$covariateData, 'metaData') <- metaData
+  
+  class(sampleTrainData$covariateData) <- 'CovariateData'
+  
+  return(sampleTrainData)
+}
+
+reduceTrainOutcomes <- function(trainData, sampleSettings){
+  
+  checkIsClass(sampleSettings$sampleSeed, c('numeric', 'integer'))
+  checkIsClass(sampleSettings$numberOutcomestoNonOutcomes, c('numeric', 'integer'))
+  checkHigherEqual(sampleSettings$numberTrainOutcomes, 0)
+  
+  ParallelLogger::logInfo(paste0('sampleSeed: ', sampleSettings$sampleSeed))
+  # ParallelLogger::logInfo(paste0('numberOutcomestoNonOutcomes: ', sampleSettings$numberOutcomestoNonOutcomes))
+  ParallelLogger::logInfo(paste0('numberTrainOutcomes:', sampleSettings$numberTrainOutcomes))
+  
+  set.seed(sampleSettings$sampleSeed)
+  ParallelLogger::logInfo(paste0('Starting sampling with seed ', sampleSettings$sampleSeed))
+  
+  population <- trainData$labels %>% dplyr::collect()
+  folds <- trainData$folds %>% dplyr::collect()
+  
+  population <- merge(population, folds, by = 'rowId')
+  numberOfFolds <- max(unique(trainData$folds$index))
+ 
+  trainOutcomePrevalence <- sum(population$outcomeCount > 0) / nrow(population)
+  sampleSize <- ceiling(sampleSettings$numberTrainOutcomes/trainOutcomePrevalence)
+  numberOfOutcomeInEachFold <- ceiling(sampleSettings$numberTrainOutcomes / numberOfFolds)
+  
+  if(sampleSize > nrow(population)){
+    ParallelLogger::logWarn('Population outcome count less than required sample size. Returning same population.')
+    sampleSize <- nrow(population)
+  } else {
+    
+  ParallelLogger::logInfo(paste0('Initial train data has ',sum(population$outcomeCount > 0),' outcomes to ',
+                                 sum(population$outcomeCount == 0), ' non-outcomes'))
+  
+  pplOfInterest <- c()
+  for(i in unique(folds$index)){
+    outcomeIds <- population$rowId[population$outcomeCount > 0 & population$index == i]
+    nonoutcomeIds <- population$rowId[population$outcomeCount == 0 & population$index == i]
+    
+    # trueOutcomePrevalence <- length(outcomeIds)/length(nonoutcomeIds)
+    # # desiredTrainPopulation <- ceiling(sampleSettings$numberTrainOutcomes/trueOutcomePrevalence)
+    # sampleSize <- ceiling(numberOfOutcomeInEachFold/trainOutcomePrevalence)
+    
+    # if(sampleSize > length(outcomeIds) + length(nonoutcomeIds)){
+    #   ParallelLogger::logWarn('Population count less that require sample size. Returning same population.')
+    #   sampleSize <- length(nonoutcomeIds) + length(outcomeIds)
+    # }
+    
+    # randomly pick people
+    sampleOutcomeIds <- sample(outcomeIds, size = numberOfOutcomeInEachFold)
+    sampleNonOutcomeIds <- sample(nonoutcomeIds, size = ((sampleSize/numberOfFolds) - numberOfOutcomeInEachFold))
+    newPopulationIds <- c(sampleOutcomeIds, sampleNonOutcomeIds)
+    
+    pplOfInterest <- c(pplOfInterest, newPopulationIds)
+    }
+  }
+  
+  # filter to these patients 
+  sampleTrainData <- list()
+  class(sampleTrainData) <- 'plpData'
+  sampleTrainData$labels <- trainData$labels %>% dplyr::filter(.data$rowId %in% pplOfInterest)
+  sampleTrainData$folds <- trainData$folds %>% dplyr::filter(.data$rowId %in% pplOfInterest)
+  
+  
+  
+  sampleTrainData$covariateData <- Andromeda::andromeda()
+  sampleTrainData$covariateData$covariateRef <- trainData$covariateData$covariateRef
+  sampleTrainData$covariateData$covariates <- trainData$covariateData$covariates %>% 
+    dplyr::filter(.data$rowId %in% pplOfInterest)
   
   #update metaData$populationSize = nrow(trainData$labels)
   metaData <- attr(trainData$covariateData, 'metaData')
