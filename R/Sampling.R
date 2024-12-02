@@ -291,6 +291,8 @@ reduceTrainOutcomes <- function(trainData, sampleSettings){
   if(sampleSize > nrow(population)){
     ParallelLogger::logWarn('Population outcome count less than required sample size. Returning same population.')
     sampleSize <- nrow(population)
+    
+    return(trainData)
   } else {
     
   ParallelLogger::logInfo(paste0('Initial train data has ',sum(population$outcomeCount > 0),' outcomes to ',
@@ -317,7 +319,7 @@ reduceTrainOutcomes <- function(trainData, sampleSettings){
     
     pplOfInterest <- c(pplOfInterest, newPopulationIds)
     }
-  }
+  
   
   # filter to these patients 
   sampleTrainData <- list()
@@ -340,4 +342,5 @@ reduceTrainOutcomes <- function(trainData, sampleSettings){
   class(sampleTrainData$covariateData) <- 'CovariateData'
   
   return(sampleTrainData)
+  }
 }
