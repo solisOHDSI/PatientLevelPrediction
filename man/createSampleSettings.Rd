@@ -18,7 +18,7 @@ createSampleSettings(
 \item 'overSample' Oversample the outcome class by adding in each outcome multiple times
 }}
 
-\item{numberOutcomestoNonOutcomes}{(numeric) An numeric specifying the require number of non-outcomes per outcome}
+\item{numberOutcomestoNonOutcomes}{(numeric) An numeric specifying the required number of outcomes per non-outcome}
 
 \item{sampleSeed}{(numeric) A seed to use when splitting the data for reproducibility (if not set a random number will be generated)}
 }
