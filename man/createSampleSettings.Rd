@@ -8,7 +8,8 @@ default sample functions.}
 createSampleSettings(
   type = "none",
   numberOutcomestoNonOutcomes = 1,
-  sampleSeed = sample(10000, 1)
+  sampleSeed = sample(10000, 1),
+  ...
 )
 }
 \arguments{
